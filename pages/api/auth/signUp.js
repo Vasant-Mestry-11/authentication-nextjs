@@ -2,37 +2,39 @@ import { hashPassword } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
 
 async function handler(req, res) {
-  const data = req.body;
 
-  const { email, password } = data;
+  if (req.method === 'POST') {
+    const data = req.body;
 
-  if (
-    !email ||
-    !email.includes("@") ||
-    !password ||
-    password.trim().length < 7
-  ) {
-    res.status(422).json({
-      message: "Invalid input",
-    });
-    return;
+    const { email, password } = data;
+
+    if (
+      !email ||
+      !email.includes("@") ||
+      !password ||
+      password.trim().length < 7
+    ) {
+      res.status(422).json({
+        message: "Invalid input",
+      });
+      return;
+    }
+
+    const client = await connectToDatabase();
+
+    const db = client.db("auth");
+
+    const hashedPassword = await hashPassword(password)
+
+    const result = await db.collection("users").insertOne({
+      email, password: hashedPassword
+    })
+
+    res.status(201).json({
+      message: 'User created'
+    })
+
   }
-
-  const client = await connectToDatabase();
-
-  const db = client.db("auth");
-
-  const hashedPassword = hashPassword(password)
-
-  const result = await db.collection("users").insertOne({
-    email, password: hashedPassword
-  })
-
-  res.status(201).json({
-    message: 'User created'
-  })
-
-
 }
 
 export default handler;
